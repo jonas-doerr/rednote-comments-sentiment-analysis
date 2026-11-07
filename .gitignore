@@ -14,3 +14,10 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+
+# Raw data
+Comments data/
+
+# Generated datasets
+combined_comments.csv
+balanced_comments.csv
