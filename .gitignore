@@ -16,7 +16,7 @@ Thumbs.db
 .idea/
 
 # Raw data
-Comments data/
+Comments_data/
 
 # Generated datasets
 combined_comments.csv
