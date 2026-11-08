@@ -5,3 +5,5 @@ This project takes the comments scraped from some of my own RedNote videos and p
 - scrape comments from rednote with 八爪鱼
 - process comments (regex, etc)
 - analyze comments
+
+- tried bigram analysis, but most bigrams only appeared one time
