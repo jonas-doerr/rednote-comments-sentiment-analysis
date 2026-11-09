@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import jieba
 from collections import Counter
 import re
+import numpy as np
+from snownlp import SnowNLP
 
-
+# Data prep
 def load_data():
     folder = Path("Comments_data")
     files = sorted(folder.glob("*.xlsx"))
@@ -83,6 +85,7 @@ def save_data(data, balanced_data):
 
     print("Datasets successfully saved.")
 
+# Basic analysis
 def analyze_data(data):
     summary = data.groupby("category").agg(
         total_comments=("评论内容", "count"),
@@ -256,6 +259,7 @@ def visualize_video_averages(data):
     plt.tight_layout()
     plt.show()
 
+# Tokenization and word frequencies
 def normalize_token(word):
     # Combine repeated Chinese laughter
     if re.fullmatch(r"哈{2,}", word):
@@ -325,6 +329,216 @@ def analyze_video_word_frequencies(data):
         for word, count in word_counts.most_common(15):
             print(f"{word}: {count}")
 
+# Theme analysis
+def analyze_themes(data):
+
+    # 1. Define coding columns
+    coding_columns = [
+        "HUM", "CULT", "LANG", "ID", "EXP",
+        "APP", "QST", "ADV", "OTHER", "REACT"
+    ]
+
+    # 2. Clean up potentially malformed column names
+    data = data.copy()
+
+    data.columns = (
+        data.columns
+        .str.replace("**", "", regex=False)
+        .str.replace("&#x51;", "Q", regex=False)
+    )
+
+    # 3. Check that all coding columns exist
+    missing_columns = [
+        col for col in coding_columns
+        if col not in data.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            f"Missing coding columns: {missing_columns}"
+        )
+
+    # 4. Calculate theme percentages by category
+    category_results = (
+        data.groupby("category")[coding_columns]
+        .mean() * 100
+    )
+
+    category_results = category_results.round(1)
+
+    # 5. Calculate theme percentages by individual video
+    video_results = (
+        data.groupby(["video_id", "category"])[coding_columns]
+        .mean() * 100
+    ).round(1)
+
+    # 6. Count how many comments contain each theme
+    theme_counts = data[coding_columns].sum().sort_values(
+        ascending=False
+    )
+
+    # 7. Identify themes that frequently appear together
+    overlap_results = pd.DataFrame(
+        index=coding_columns,
+        columns=coding_columns
+    )
+
+    for theme1 in coding_columns:
+        for theme2 in coding_columns:
+            overlap_results.loc[theme1, theme2] = (
+                (data[theme1] == 1) &
+                (data[theme2] == 1)
+            ).sum()
+
+    overlap_results = overlap_results.astype(int)
+
+    '''
+    # 8. Print results
+    print("\n=== THEME PERCENTAGES BY CATEGORY ===")
+    print(category_results)
+
+    print("\n=== THEME PERCENTAGES BY VIDEO ===")
+    print(video_results)
+
+    print("\n=== TOTAL THEME FREQUENCIES ===")
+    print(theme_counts)
+
+    print("\n=== THEME OVERLAP ===")
+    print(overlap_results)
+
+    # 9. Save results
+    category_results.to_csv(
+        "theme_category_results.csv",
+        encoding="utf-8-sig"
+    )
+
+    video_results.to_csv(
+        "theme_video_results.csv",
+        encoding="utf-8-sig"
+    )
+
+    theme_counts.to_csv(
+        "theme_frequency_results.csv",
+        encoding="utf-8-sig"
+    )
+
+    overlap_results.to_csv(
+        "theme_overlap_results.csv",
+        encoding="utf-8-sig"
+    )
+
+    print("\nAnalysis complete. Results saved.")
+    '''
+    
+    return (
+        category_results,
+        video_results,
+        theme_counts,
+        overlap_results
+    )
+
+def plot_category_themes(category_results):
+
+    themes = [
+        "HUM", "CULT", "LANG", "ID", "EXP",
+        "APP", "QST", "ADV", "REACT"
+    ]
+
+    labels = [
+        "Humor", "Culture / Society", "Language",
+        "Identity", "Personal Experience", "Appreciation",
+        "Questions", "Advice", "Reactions"
+    ]
+
+    media = category_results.loc["Chinese Media", themes]
+    challenge = category_results.loc["Chinglish Challenge", themes]
+
+    y = np.arange(len(themes))
+    height = 0.36
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    bars1 = ax.barh(
+        y - height / 2, media.values,
+        height, label="Chinese Media"
+    )
+
+    bars2 = ax.barh(
+        y + height / 2, challenge.values,
+        height, label="Chinglish Challenge"
+    )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+
+    ax.set_xlabel("Percentage of comments (%)")
+    ax.set_title("Thematic Differences Between Video Categories")
+
+    ax.legend()
+    ax.grid(axis="x", alpha=0.25)
+
+    ax.bar_label(bars1, fmt="%.1f%%", padding=3, fontsize=8)
+    ax.bar_label(bars2, fmt="%.1f%%", padding=3, fontsize=8)
+
+    ax.set_xlim(0, 65)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_video_heatmap(video_results):
+
+    themes = [
+        "HUM", "CULT", "LANG", "ID", "EXP",
+        "APP", "QST", "ADV", "OTHER", "REACT"
+    ]
+
+    labels = [
+        "Humor", "Culture / Society", "Language",
+        "Identity", "Personal Experience", "Appreciation",
+        "Questions", "Advice", "Other", "Reactions"
+    ]
+
+    results = video_results.reset_index()
+    results = results.sort_values("video_id")
+
+    matrix = results[themes].to_numpy()
+
+    video_labels = [
+        f"Video {row.video_id} ({row.category})"
+        for row in results.itertuples()
+    ]
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    image = ax.imshow(
+        matrix,
+        cmap="YlOrRd",
+        aspect="auto",
+        vmin=0,
+        vmax=100
+    )
+
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=35, ha="right")
+
+    ax.set_yticks(range(len(video_labels)))
+    ax.set_yticklabels(video_labels)
+
+    ax.set_title("Theme Distribution Across Individual Videos")
+
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            ax.text(
+                j, i, f"{matrix[i, j]:.1f}",
+                ha="center", va="center", fontsize=8
+            )
+
+    fig.colorbar(image, ax=ax, label="Percentage of comments (%)")
+
+    plt.tight_layout()
+    plt.show()
+
 
 def main():
 
@@ -349,9 +563,19 @@ def main():
     # visualize_video_averages(balanced_data)
 
     # basic tokenization and analysis
+    '''
     balanced_data = tokenize_comments(balanced_data)
     analyze_word_frequencies(balanced_data)
     analyze_video_word_frequencies(balanced_data)
+    '''
+
+    # Theme analysis
+    coded_data = pd.read_csv("coded_comments.csv")
+    category_results, video_results, theme_counts, overlap_results = (
+        analyze_themes(coded_data)
+    )
+    plot_category_themes(category_results)
+    plot_video_heatmap(video_results)
 
 if __name__ == "__main__":
     main()

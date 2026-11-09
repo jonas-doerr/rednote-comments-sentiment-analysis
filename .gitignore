@@ -21,3 +21,5 @@ Comments_data/
 # Generated datasets
 combined_comments.csv
 balanced_comments.csv
+coded_comments.csv
+theme*.csv
