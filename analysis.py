@@ -539,6 +539,247 @@ def plot_video_heatmap(video_results):
     plt.tight_layout()
     plt.show()
 
+# Sentiment Analysis
+def analyze_sentiment(data):
+
+    data = data.copy()
+
+    # Calculate sentiment score for each comment
+    data["sentiment_score"] = (
+        data["评论内容"]
+        .astype(str)
+        .apply(lambda comment: SnowNLP(comment).sentiments)
+    )
+
+    # Assign sentiment categories
+    def classify_sentiment(score):
+
+        if score < 0.30:
+            return "Negative"
+        elif score < 0.70:
+            return "Neutral"
+        else:
+            return "Positive"
+
+    data["sentiment"] = (
+        data["sentiment_score"]
+        .apply(classify_sentiment)
+    )
+
+    # Calculate average sentiment by category
+    category_sentiment = (
+        data.groupby("category")["sentiment_score"]
+        .agg(["mean", "median", "count"])
+        .round(3)
+    )
+
+    # Calculate sentiment distribution by category
+    sentiment_distribution = pd.crosstab(
+        data["category"],
+        data["sentiment"],
+        normalize="index"
+    ) * 100
+
+    sentiment_distribution = sentiment_distribution.round(1)
+
+    # Calculate average sentiment by video
+    video_sentiment = (
+        data.groupby(["video_id", "category"])
+        ["sentiment_score"]
+        .mean()
+        .round(3)
+    )
+
+    print("\n=== AVERAGE SENTIMENT BY CATEGORY ===")
+    print(category_sentiment)
+
+    print("\n=== SENTIMENT DISTRIBUTION ===")
+    print(sentiment_distribution)
+
+    print("\n=== AVERAGE SENTIMENT BY VIDEO ===")
+    print(video_sentiment)
+
+    return (
+        data,
+        category_sentiment,
+        sentiment_distribution,
+        video_sentiment
+    )
+
+def analyze_theme_sentiment(data):
+
+    themes = [
+        "HUM", "CULT", "LANG", "ID", "EXP",
+        "APP", "QST", "ADV", "OTHER", "REACT"
+    ]
+
+    print("\n=== SENTIMENT BY THEME ===")
+
+    results = []
+
+    for theme in themes:
+
+        included = data[data[theme] == 1]
+        excluded = data[data[theme] == 0]
+
+        results.append({
+            "theme": theme,
+            "comments": len(included),
+            "mean_sentiment": included["sentiment_score"].mean(),
+            "without_theme_mean": excluded["sentiment_score"].mean()
+        })
+
+    results = pd.DataFrame(results)
+
+    results["difference"] = (
+        results["mean_sentiment"] -
+        results["without_theme_mean"]
+    )
+
+    results = results.round(3)
+
+    print(results.to_string(index=False))
+
+    return results
+
+def plot_theme_sentiment(theme_sentiment):
+
+    results = theme_sentiment.sort_values(
+        "difference", ascending=True
+    ).copy()
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    y = np.arange(len(results))
+    height = 0.36
+
+    bars1 = ax.barh(
+        y - height / 2,
+        results["mean_sentiment"],
+        height,
+        label="Comments with theme"
+    )
+
+    bars2 = ax.barh(
+        y + height / 2,
+        results["without_theme_mean"],
+        height,
+        label="Comments without theme"
+    )
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(results["theme"])
+
+    ax.set_xlabel("Average SnowNLP sentiment score")
+    ax.set_title("Sentiment Associated with Each Theme")
+
+    ax.set_xlim(0, 1)
+    ax.axvline(0.5, linestyle="--", alpha=0.6)
+
+    ax.legend()
+    ax.grid(axis="x", alpha=0.2)
+
+    ax.bar_label(bars1, fmt="%.3f", padding=3, fontsize=8)
+    ax.bar_label(bars2, fmt="%.3f", padding=3, fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_sentiment_distribution(data):
+
+    distribution = pd.crosstab(
+        data["category"],
+        data["sentiment"],
+        normalize="index"
+    ) * 100
+
+    sentiment_order = ["Negative", "Neutral", "Positive"]
+    distribution = distribution[sentiment_order]
+
+    ax = distribution.plot(
+        kind="bar",
+        stacked=True,
+        figsize=(9, 6)
+    )
+
+    ax.set_title("Sentiment Distribution by Video Category")
+    ax.set_xlabel("Video Category")
+    ax.set_ylabel("Percentage of Comments (%)")
+
+    ax.legend(title="Sentiment", bbox_to_anchor=(1.02, 1))
+    ax.set_xticklabels(
+        ax.get_xticklabels(),
+        rotation=0
+    )
+
+    ax.grid(axis="y", alpha=0.2)
+
+    plt.tight_layout()
+    plt.show()
+
+def plot_video_sentiment(data):
+
+    results = (
+        data.groupby(["video_id", "category"])["sentiment_score"]
+        .mean()
+        .reset_index()
+        .sort_values("video_id")
+    )
+
+    labels = [
+        f"Video {row.video_id}\n{row.category}"
+        for row in results.itertuples()
+    ]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    bars = ax.bar(
+        labels,
+        results["sentiment_score"],
+        width=0.65
+    )
+
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Average sentiment score")
+    ax.set_title("Average Sentiment Across Individual Videos")
+
+    ax.axhline(0.5, linestyle="--", alpha=0.6)
+
+    ax.bar_label(bars, fmt="%.3f", padding=3)
+
+    ax.tick_params(axis="x", labelsize=8)
+    ax.grid(axis="y", alpha=0.2)
+
+    plt.tight_layout()
+    plt.show()
+
+def analyze_theme_sentiment_by_category(data):
+    themes = [
+        "HUM", "CULT", "LANG", "ID", "EXP",
+        "APP", "QST", "ADV", "OTHER", "REACT"
+    ]
+
+    rows = []
+
+    for category, group in data.groupby("category"):
+        for theme in themes:
+            with_theme = group.loc[group[theme] == 1, "sentiment_score"]
+            without_theme = group.loc[group[theme] == 0, "sentiment_score"]
+
+            mean_with = with_theme.mean()
+            mean_without = without_theme.mean()
+
+            rows.append({
+                "category": category,
+                "theme": theme,
+                "n_with": len(with_theme),
+                "mean_with": mean_with,
+                "n_without": len(without_theme),
+                "mean_without": mean_without,
+                "difference": mean_with - mean_without
+            })
+
+    return pd.DataFrame(rows).round(3)
 
 def main():
 
@@ -570,12 +811,32 @@ def main():
     '''
 
     # Theme analysis
-    coded_data = pd.read_csv("coded_comments.csv")
+    '''coded_data = pd.read_csv("coded_comments.csv")
     category_results, video_results, theme_counts, overlap_results = (
         analyze_themes(coded_data)
     )
     plot_category_themes(category_results)
-    plot_video_heatmap(video_results)
+    plot_video_heatmap(video_results)'''
+
+    #Sentiment Analysis
+    coded_data = pd.read_csv("coded_comments.csv")
+    sentiment_data, category_sentiment, distribution, video_sentiment = (
+        analyze_sentiment(coded_data)
+    )
+
+    theme_sentiment = analyze_theme_sentiment(sentiment_data)
+    # plot_theme_sentiment(theme_sentiment)
+    # plot_sentiment_distribution(sentiment_data)
+    # plot_video_sentiment(sentiment_data)
+
+    theme_category_sentiment = analyze_theme_sentiment_by_category(sentiment_data)
+
+    print(theme_category_sentiment.to_string(index=False))
+
+    theme_category_sentiment.to_csv(
+        "theme_sentiment_by_category.csv",
+        index=False
+    )
 
 if __name__ == "__main__":
     main()
