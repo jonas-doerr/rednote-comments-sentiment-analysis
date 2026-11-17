@@ -18,7 +18,7 @@ I compared comments on two kinds of videos from one creator's RedNote account:
 | **"Chinglish Challenge"** (Chinglish and internet-meme content) | 3 | 10–20 sec |
 | **"Chinese Media"** (discussion of Chinese books and films) | 3 | 1–3 min |
 
-**Sample:** 43 randomly sampled comments per video, 258 in total (drawn from [TODO: total number scraped] scraped comments).
+**Sample:** 43 randomly sampled comments per video, 258 in total (drawn from 1500 scraped comments).
 
 **Methods:** descriptive statistics (likes, comment length), hand-coded thematic analysis with a codebook (including a re-coding check), and sentiment analysis with [SnowNLP](https://github.com/isnowfy/snownlp).
 
