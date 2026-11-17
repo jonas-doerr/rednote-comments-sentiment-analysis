@@ -1,0 +1,35 @@
+
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using the metadata below."
+
+authors:
+  - family-names: Doerr
+    given-names: Jonas
+
+title: "Strangers in the Comment Section: An Introductory Analysis of Comments on an American's RedNote Videos"
+
+abstract: >
+  An exploratory computational communication research project
+  analyzing audience comments on six RedNote videos. The project
+  uses Python, Chinese-language text processing, thematic coding,
+  and sentiment analysis to examine differences in audience
+  interaction between Chinese media-related content and
+  Chinglish challenge videos.
+
+version: 1.0.0
+
+date-released: "2026-11-12"
+
+repository-code: "https://github.com/jonas-doerr/rednote-comments-sentiment-analysis"
+
+keywords:
+  - computational communication
+  - social media
+  - RedNote
+  - Xiaohongshu
+  - sentiment analysis
+  - thematic analysis
+  - Chinese language processing
+  - Python
+
+type: software

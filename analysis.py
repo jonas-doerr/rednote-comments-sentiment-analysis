@@ -804,19 +804,17 @@ def main():
     # visualize_video_averages(balanced_data)
 
     # basic tokenization and analysis
-    '''
     balanced_data = tokenize_comments(balanced_data)
     analyze_word_frequencies(balanced_data)
     analyze_video_word_frequencies(balanced_data)
-    '''
 
     # Theme analysis
-    '''coded_data = pd.read_csv("coded_comments.csv")
+    coded_data = pd.read_csv("coded_comments.csv")
     category_results, video_results, theme_counts, overlap_results = (
         analyze_themes(coded_data)
     )
     plot_category_themes(category_results)
-    plot_video_heatmap(video_results)'''
+    plot_video_heatmap(video_results)
 
     #Sentiment Analysis
     coded_data = pd.read_csv("coded_comments.csv")
@@ -825,9 +823,9 @@ def main():
     )
 
     theme_sentiment = analyze_theme_sentiment(sentiment_data)
-    # plot_theme_sentiment(theme_sentiment)
-    # plot_sentiment_distribution(sentiment_data)
-    # plot_video_sentiment(sentiment_data)
+    plot_theme_sentiment(theme_sentiment)
+    plot_sentiment_distribution(sentiment_data)
+    plot_video_sentiment(sentiment_data)
 
     theme_category_sentiment = analyze_theme_sentiment_by_category(sentiment_data)
 
